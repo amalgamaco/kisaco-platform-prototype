@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Connected: Health & Fitness — Event Platform</title>
+
+<!-- Fonts (Amalgama DS) -->
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Epilogue:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- Amalgama Design System -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/amalgamaco/amalgama-design-system@main/css/variables.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/amalgamaco/amalgama-design-system@main/css/base.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/amalgamaco/amalgama-design-system@main/css/layout.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/amalgamaco/amalgama-design-system@main/css/components.css">
+
+<!-- React + Babel -->
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<style>
+/* ────────────────────────────────────────────────
+   CHFS Event brand overrides on top of Amalgama DS
+   Sidebar + topbar use --primary-900 (dark navy).
+   All other surfaces inherit DS light defaults.
+   ──────────────────────────────────────────────── */
+
+/* Dark sidebar */
+.sidebar {
+  background: var(--primary-900);
+  border-right-color: rgba(255,255,255,0.07);
+}
+.sidebar-logo {
+  border-bottom-color: rgba(255,255,255,0.07);
+  background: var(--primary-900);
+}
+.sidebar .nav-section-label { color: rgba(255,255,255,0.28); }
+.sidebar .nav-item { color: rgba(255,255,255,0.50); }
+.sidebar .nav-item:hover { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.85); }
+.sidebar .nav-item.active { background: rgba(79,128,255,0.18); color: #7ea8ff; font-weight:600; }
+.sidebar-footer { border-top-color: rgba(255,255,255,0.07); }
+
+/* Dark topbar */
+.topbar {
+  background: var(--primary-900);
+  border-bottom-color: rgba(255,255,255,0.07);
+  position: sticky; top:0; z-index:20;
+}
+
+/* btn-sm for btn-ghost (DS only defines it on btn-primary) */
+.btn-ghost.btn-sm { padding: 6px 12px; font-size: 12.5px; }
+
+/* ── Score bar (not in DS) ── */
+.score-bar-track { height:5px; background:var(--border); border-radius:var(--radius-full); overflow:hidden; flex:1; }
+.score-bar-fill  { height:100%; border-radius:var(--radius-full); transition: width .7s cubic-bezier(.34,1.56,.64,1); }
+.score-bar-fill.high { background:var(--green); }
+.score-bar-fill.mid  { background:var(--accent); }
+.score-bar-fill.low  { background:var(--warning-500); }
+
+/* ── Avatar (not in DS) ── */
+.av { border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-weight:700; letter-spacing:-.5px; }
+
+/* ── Match row ── */
+.match-row { display:flex; align-items:center; gap:14px; padding:14px 16px; }
+.match-row .mi { flex:1; min-width:0; }
+.match-row .ms { width:130px; flex-shrink:0; }
+.match-row .ma { flex-shrink:0; }
+
+/* ── Alert banner ── */
+.alert-warn {
+  display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+  background:var(--warning-50); border:1px solid #fde68a;
+  border-radius:var(--radius-md); padding:12px 16px; margin-bottom:20px;
+}
+.alert-warn p { color:var(--warning-700); font-size:13px; margin:0; }
+
+/* ── ICP ── */
+.icp-banner {
+  background:var(--bg); border:1px solid var(--border);
+  border-radius:var(--radius-lg); padding:16px 20px;
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  margin-bottom:24px; flex-wrap:wrap;
+}
+.icp-tag-row { display:flex; gap:7px; flex-wrap:wrap; }
+.criteria-item {
+  background:var(--card-bg); border:1px solid var(--border);
+  border-radius:var(--radius-md); padding:6px 10px;
+  color:var(--text-secondary); font-size:12px;
+  display:flex; justify-content:space-between; align-items:center; gap:8px;
+}
+.criteria-add {
+  border:1px dashed var(--border); border-radius:var(--radius-md);
+  padding:6px 10px; color:var(--accent); font-size:12px; font-weight:500;
+  cursor:pointer; background:none; font-family:inherit; width:100%;
+  transition:background var(--duration-fast);
+}
+.criteria-add:hover { background:var(--accent-light); }
+
+/* ── Calendar ── */
+.cal-grid { border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; display:flex; }
+.cal-time  { width:58px; flex-shrink:0; border-right:1px solid var(--border); background:var(--bg); }
+.cal-day   { flex:1; border-right:1px solid var(--border); }
+.cal-day:last-child { border-right:none; }
+.cal-hdr   { height:48px; border-bottom:1px solid var(--border); display:flex; flex-direction:column; align-items:center; justify-content:center; background:var(--card-bg); }
+.cal-slot  { height:56px; border-bottom:1px solid #f0f0f8; padding:3px; cursor:default; }
+.cal-slot.has { cursor:pointer; }
+.cal-slot.has:hover .cal-ev { filter:brightness(.96); }
+.cal-ev    { height:100%; border-radius:var(--radius-sm); padding:5px 8px; overflow:hidden; }
+.cal-ev-nm { font-size:11px; font-weight:700; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.cal-ev-co { font-size:10px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.cal-ev.confirmed  { background:var(--green-light); border-left:3px solid var(--green); }
+.cal-ev.confirmed .cal-ev-nm { color:#005a28; }
+.cal-ev.confirmed .cal-ev-co { color:var(--success-700); }
+.cal-ev.pending    { background:var(--warning-50); border-left:3px solid var(--warning-500); }
+.cal-ev.pending .cal-ev-nm { color:#7a3e00; }
+.cal-ev.pending .cal-ev-co { color:var(--warning-700); }
+.cal-ev.no_response{ background:var(--red-light); border-left:3px solid var(--red); }
+.cal-ev.no_response .cal-ev-nm { color:var(--error-700); }
+.cal-ev.no_response .cal-ev-co { color:var(--red); }
+
+/* ── Detail panel ── */
+.detail-panel {
+  position:fixed; right:0; top:0; bottom:0; width:320px;
+  background:var(--card-bg); border-left:1px solid var(--border);
+  padding:24px; overflow-y:auto; z-index:60;
+  box-shadow:var(--shadow-lg); animation:slideInRight .25s ease;
+}
+.detail-row { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border); }
+
+/* ── Cal connect banners ── */
+.cal-connect {
+  display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+  background:var(--accent-light); border:1px solid var(--secondary-100);
+  border-radius:var(--radius-md); padding:14px 18px; margin-bottom:20px;
+}
+.cal-connected {
+  display:flex; align-items:center; gap:10px;
+  background:var(--green-light); border:1px solid var(--success-100);
+  border-radius:var(--radius-md); padding:12px 18px; margin-bottom:20px;
+}
+
+/* ── Journey steps ── */
+.journey-steps { display:flex; border:1px solid var(--border); border-radius:var(--radius-lg); overflow-x:auto; margin-bottom:24px; }
+.j-step { flex:1; min-width:90px; padding:11px 8px; text-align:center; border-right:1px solid var(--border); border-bottom:2px solid transparent; }
+.j-step:last-child { border-right:none; }
+.j-step.done   { background:var(--green-light); }
+.j-step.active { background:var(--accent-light); border-bottom-color:var(--accent); }
+.j-step .num { width:22px; height:22px; border-radius:50%; margin:0 auto 5px; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; }
+.j-step.done   .num { background:var(--green); color:#fff; }
+.j-step.active .num { background:var(--accent); color:#fff; }
+.j-step:not(.done):not(.active) .num { background:var(--border); color:var(--text-muted); }
+.j-step .lbl { font-size:11px; }
+.j-step.done   .lbl { color:var(--text-muted); }
+.j-step.active .lbl { color:var(--accent); font-weight:600; }
+.j-step:not(.done):not(.active) .lbl { color:var(--text-muted); }
+
+/* ── Checklist ── */
+.check-item { display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:var(--radius-md); border:1px solid var(--border); background:var(--card-bg); margin-bottom:6px; }
+.check-dot { width:20px; height:20px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; }
+.check-dot.done { background:var(--green); color:#fff; border:2px solid var(--green); }
+.check-dot.todo { background:transparent; border:2px solid var(--border); }
+
+/* ── Invite card ── */
+.invite-card { margin-bottom:10px; }
+.invite-icon { width:44px; height:44px; border-radius:var(--radius-md); background:var(--accent-light); display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; }
+.invite-actions { display:flex; gap:8px; margin-top:12px; }
+
+/* ── Countdown ── */
+.cdw {
+  margin:16px 10px 0;
+  background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);
+  border-radius:var(--radius-md); padding:14px 16px;
+}
+.cdw-lbl  { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.7px; color:rgba(255,255,255,0.3); margin-bottom:6px; }
+.cdw-val  { font-family:'Epilogue',sans-serif; font-size:30px; font-weight:900; color:#fff; line-height:1; letter-spacing:-1px; }
+.cdw-unit { font-size:13px; font-weight:400; letter-spacing:0; }
+.cdw-sub  { font-size:11px; color:rgba(255,255,255,0.35); margin-top:4px; }
+.cdw-bar  { height:3px; background:rgba(255,255,255,0.1); border-radius:2px; margin-top:10px; overflow:hidden; }
+.cdw-fill { height:100%; width:85%; background:var(--accent); border-radius:2px; }
+
+/* ── Hamburger ── */
+.ham-btn {
+  display:none; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.12);
+  border-radius:var(--radius-md); width:36px; height:36px;
+  align-items:center; justify-content:center; cursor:pointer;
+  color:rgba(255,255,255,0.8); font-size:16px;
+}
+
+/* ── Mobile overlay ── */
+.overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:9; backdrop-filter:blur(2px); }
+
+/* ── Bottom nav ── */
+.bottom-nav { display:none; position:fixed; bottom:0; left:0; right:0; background:var(--primary-900); border-top:1px solid rgba(255,255,255,.08); height:60px; z-index:30; }
+.bn-inner { display:flex; height:100%; }
+.bn-item { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; cursor:pointer; border:none; background:none; color:rgba(255,255,255,.4); font-size:10px; font-weight:500; transition:color .15s; }
+.bn-item.active { color:var(--accent); }
+.bn-icon { font-size:20px; }
+
+/* ── Section title ── */
+.sec-title { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+.sec-title h3 { font-size:14px; font-weight:700; color:var(--text-primary); margin:0; }
+
+/* ─────────────────────────────
+   RESPONSIVE
+───────────────────────────── */
+@media (max-width:1023px) {
+  .sidebar { transform:translateX(-100%); transition:transform .25s var(--ease-default); }
+  .sidebar.open { transform:translateX(0); }
+  .overlay { display:block; }
+  .overlay.hidden { display:none; }
+  .main { margin-left:0 !important; }
+  .ham-btn { display:flex; }
+  .bottom-nav { display:block; }
+  .content { padding:20px 16px 76px; }
+  .stats-grid { grid-template-columns:repeat(2,1fr); gap:10px; }
+  .match-row { flex-wrap:wrap; gap:10px; }
+  .match-row .ms { width:100%; order:4; }
+  .match-row .ma { order:3; }
+  .detail-panel { width:100%; }
+}
+@media (max-width:640px) {
+  .icp-banner { flex-direction:column; align-items:flex-start; }
+  .cal-connect { flex-direction:column; align-items:flex-start; }
+  .alert-warn { flex-direction:column; align-items:flex-start; }
+  .two-col { grid-template-columns:1fr !important; }
+  .cal-time { display:none; }
+  .stat-card .stat-value { font-size:22px; }
+  .content { padding:16px 12px 76px; }
+  .topbar { padding:0 14px; }
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useRef } = React;
+
+// ─── DATA ─────────────────────────────────────────────────────────────────────
+
+const MATCHES = [
+  { id:1, name:'Sarah Chen',    i:'SC', c:'#4f80ff', title:'VP Digital Health',              company:'Planet Fitness',    cat:'Health Club Operator',    score:97, tags:['Wearables','Member Wellness','500+ Locations'], status:'not_invited' },
+  { id:2, name:'Marcus Webb',   i:'MW', c:'#7C3AED', title:'Chief Medical Officer',          company:'Aetna Health',      cat:'Insurance & Health Plans', score:94, tags:['Outcomes Tracking','Preventive Care'],          status:'invited'     },
+  { id:3, name:'Lisa Park',     i:'LP', c:'#00c164', title:'Head of Corporate Wellness',     company:'Salesforce',        cat:'Corporate Wellness',       score:91, tags:['50k+ Employees','HSA/FSA'],                     status:'confirmed'   },
+  { id:4, name:'James Okafor',  i:'JO', c:'#fd3a45', title:'Director of Digital Innovation', company:'Kaiser Permanente', cat:'Healthcare Clinic',        score:89, tags:['Patient Engagement','Digital Health'],          status:'not_invited' },
+  { id:5, name:'Priya Nair',    i:'PN', c:'#f59e0b', title:'SVP Product',                    company:'Orangetheory',      cat:'Health Club Operator',    score:87, tags:['App Engagement','Boutique Fitness'],             status:'confirmed'   },
+  { id:6, name:'David Torres',  i:'DT', c:'#0891B2', title:'VP Employee Benefits',           company:'Microsoft',         cat:'Corporate Wellness',       score:85, tags:['Enterprise','220k Employees'],                  status:'not_invited' },
+  { id:7, name:'Emily Hart',    i:'EH', c:'#BE185D', title:'Chief Digital Officer',          company:'CrossFit',          cat:'Health Club Operator',    score:82, tags:['Community Fitness','Coaching'],                  status:'invited'     },
+  { id:8, name:'Robert Kim',    i:'RK', c:'#7C3AED', title:'Head of Innovation',             company:'Optum',             cat:'Insurance & Health Plans', score:80, tags:['AI Health','Risk Analytics'],                   status:'not_invited' },
+  { id:9, name:'Angela Rhodes', i:'AR', c:'#16A34A', title:'Global Wellness Director',       company:'Deloitte',          cat:'Corporate Wellness',       score:78, tags:['Global Programs','45k Employees'],               status:'not_invited' },
+];
+
+const MEETINGS = [
+  { id:1, name:'Lisa Park',    i:'LP', c:'#00c164', company:'Salesforce',       title:'Head of Corporate Wellness',  day:1, time:'09:30', room:'Suite 4A', status:'confirmed',    score:91, cat:'Corporate Wellness'   },
+  { id:2, name:'Priya Nair',   i:'PN', c:'#f59e0b', company:'Orangetheory',     title:'SVP Product',                 day:1, time:'11:00', room:'Suite 2B', status:'confirmed',    score:87, cat:'Health Club Operator'  },
+  { id:3, name:'Marcus Webb',  i:'MW', c:'#7C3AED', company:'Aetna Health',     title:'Chief Medical Officer',       day:1, time:'14:00', room:'Suite 4A', status:'pending',      score:94, cat:'Insurance'            },
+  { id:4, name:'James Okafor', i:'JO', c:'#fd3a45', company:'Kaiser',           title:'Director Digital Innovation', day:2, time:'10:00', room:'Suite 1C', status:'confirmed',    score:89, cat:'Healthcare'           },
+  { id:5, name:'David Torres', i:'DT', c:'#0891B2', company:'Microsoft',        title:'VP Employee Benefits',        day:2, time:'13:30', room:'Suite 3D', status:'pending',      score:85, cat:'Corporate Wellness'   },
+  { id:6, name:'Emily Hart',   i:'EH', c:'#BE185D', company:'CrossFit',         title:'Chief Digital Officer',       day:2, time:'15:00', room:'Suite 2B', status:'confirmed',    score:82, cat:'Health Club Operator'  },
+  { id:7, name:'Sarah Chen',   i:'SC', c:'#4f80ff', company:'Planet Fitness',   title:'VP Digital Health',           day:3, time:'09:00', room:'Suite 4A', status:'no_response',  score:97, cat:'Health Club Operator'  },
+  { id:8, name:'Robert Kim',   i:'RK', c:'#7C3AED', company:'Optum',            title:'Head of Innovation',          day:3, time:'11:30', room:'Suite 1C', status:'confirmed',    score:80, cat:'Insurance'            },
+];
+
+const INVITES = [
+  { id:1, sponsor:'Garmin Health', icon:'⌚', contact:'Alex Morgan',  role:'Head of Partnerships',    score:95, tags:['Wearables','Member Health Data'], day:'Feb 17', time:'9:30am',  room:'Suite 4A', status:'pending'  },
+  { id:2, sponsor:'Google Fitbit', icon:'📱', contact:'Jamie Chen',   role:'Partnership Director',    score:92, tags:['Health Data','Consumer Tech'],     day:'Feb 17', time:'2:00pm',  room:'Suite 3C', status:'pending'  },
+  { id:3, sponsor:'Sleep Cycle',   icon:'😴', contact:'Nina Roberts', role:'VP Fitness Partnerships', score:88, tags:['Sleep Health','Recovery'],         day:'Feb 18', time:'10:30am', room:'Suite 2A', status:'accepted' },
+];
+
+const SESSIONS = [
+  { id:1, title:'AI-Driven Member Retention',               speaker:'CEO, Anytime Fitness',   time:'Feb 17 · 10:00am', track:'Operators', hot:true  },
+  { id:2, title:'Wearables Integration in Club Environments',speaker:'Head of Health, Garmin', time:'Feb 17 · 2:30pm',  track:'Operators', hot:true  },
+  { id:3, title:'Unlocking HSA/FSA for Fitness Brands',     speaker:'CEO, Truemed',            time:'Feb 18 · 3:00pm',  track:'Operators', hot:false },
+];
+
+const DAYS  = [{ l:'Mon 17', f:'Feb 17' }, { l:'Tue 18', f:'Feb 18' }, { l:'Wed 19', f:'Feb 19' }];
+const SLOTS = ['09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00'];
+
+const addMins = (t, m) => {
+  const [h, min] = t.split(':').map(Number);
+  const tot = h*60 + min + m;
+  return `${String(Math.floor(tot/60)).padStart(2,'0')}:${String(tot%60).padStart(2,'0')}`;
+};
+
+// ─── SHARED COMPONENTS ────────────────────────────────────────────────────────
+
+const Av = ({ i, c, size=40 }) => (
+  <div className="av" style={{ width:size, height:size, background:`${c}18`, border:`2px solid ${c}40`, color:c, fontSize:size*0.33 }}>{i}</div>
+);
+
+const ScoreBar = ({ v }) => {
+  const cls = v >= 90 ? 'high' : v >= 80 ? 'mid' : 'low';
+  const clr = v >= 90 ? 'var(--green)' : v >= 80 ? 'var(--accent)' : 'var(--warning-500)';
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+      <div className="score-bar-track">
+        <div className={`score-bar-fill ${cls}`} style={{ width:`${v}%` }}/>
+      </div>
+      <span style={{ color:clr, fontSize:13, fontWeight:700, minWidth:30 }}>{v}%</span>
+    </div>
+  );
+};
+
+const StatusBadge = ({ s }) => {
+  const MAP = {
+    confirmed:   ['badge badge-open',    'Confirmed'   ],
+    invited:     ['badge badge-warning', 'Invited'     ],
+    pending:     ['badge badge-warning', 'Pending'     ],
+    no_response: ['badge badge-closed',  'No Response' ],
+    not_invited: ['badge badge-draft',   'Not Invited' ],
+    accepted:    ['badge badge-open',    'Accepted'    ],
+    declined:    ['badge badge-archived','Declined'    ],
+  };
+  const [cls, lbl] = MAP[s] || MAP.not_invited;
+  return <span className={cls}>{lbl}</span>;
+};
+
+const Tag = ({ children, color }) => (
+  <span className="badge badge-accent" style={color ? { background:`${color}18`, color, border:`1px solid ${color}30` } : {}}>
+    {children}
+  </span>
+);
+
+const SecTitle = ({ children, action }) => (
+  <div className="sec-title">
+    <h3>{children}</h3>
+    {action}
+  </div>
+);
+
+const ToastComp = ({ msg, onClose }) => (
+  <div className="toast-container">
+    <div className="toast toast-success">
+      <span className="toast-icon" style={{ color:'var(--green)' }}>✓</span>
+      <span className="toast-message">{msg}</span>
+      <button className="toast-close" onClick={onClose}>✕</button>
+    </div>
+  </div>
+);
+
+// ─── MATCH ROW ────────────────────────────────────────────────────────────────
+
+const MatchRow = ({ m, onInvite }) => (
+  <div className="card match-row">
+    <Av i={m.i} c={m.c} size={40}/>
+    <div className="mi">
+      <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:2, flexWrap:'wrap' }}>
+        <span style={{ fontWeight:700, color:'var(--text-primary)', fontSize:14 }}>{m.name}</span>
+        <StatusBadge s={m.status}/>
+      </div>
+      <div style={{ color:'var(--text-muted)', fontSize:12 }}>{m.title} · {m.company}</div>
+      <div style={{ display:'flex', gap:5, flexWrap:'wrap', marginTop:6 }}>
+        {m.tags.map(t => <Tag key={t}>{t}</Tag>)}
+      </div>
+    </div>
+    <div className="ms">
+      <div style={{ color:'var(--text-muted)', fontSize:11, fontWeight:600, marginBottom:4 }}>ICP Match</div>
+      <ScoreBar v={m.score}/>
+    </div>
+    <div className="ma">
+      {m.status === 'not_invited'
+        ? <button className="btn-primary btn-sm" onClick={() => onInvite(m)}>Invite</button>
+        : m.status === 'confirmed'
+        ? <button className="btn-primary btn-sm btn-success" disabled>✓ Confirmed</button>
+        : <button className="btn-ghost btn-sm" disabled>⏳ Invited</button>}
+    </div>
+  </div>
+);
+
+// ─── VIEW: DASHBOARD ──────────────────────────────────────────────────────────
+
+const Dashboard = ({ nav, toast }) => {
+  const [matches, setMatches] = useState(MATCHES);
+  const onInvite = m => {
+    setMatches(p => p.map(x => x.id === m.id ? { ...x, status:'invited' } : x));
+    toast(`Invite sent to ${m.name} · ${m.company}`);
+  };
+  return (
+    <div>
+      <div className="icp-banner">
+        <div>
+          <div style={{ color:'var(--text-muted)', fontSize:11, fontWeight:600, textTransform:'uppercase', letterSpacing:.7, marginBottom:8 }}>Active ICP Configuration</div>
+          <div className="icp-tag-row">
+            <Tag>Health Club Operators</Tag>
+            <Tag color="#7C3AED">Insurance Companies</Tag>
+            <Tag color="#00c164">Corporate Wellness</Tag>
+            <Tag color="#f59e0b">Healthcare Clinics</Tag>
+          </div>
+        </div>
+        <button className="btn-ghost" onClick={() => nav('matches')}>Edit ICP →</button>
+      </div>
+
+      <div className="stats-grid">
+        {[
+          { label:'Total Matches',  value:'47',  change:'↑ 12 new this week', cc:'var(--accent)' },
+          { label:'Invites Sent',   value:'14',  change:'5 categories',        cc:'var(--text-muted)' },
+          { label:'Confirmed',      value:'9',   change:'of 14 invited',       cc:'var(--green)' },
+          { label:'Est. Show-up',   value:'84%', change:'↑ vs 67% avg',        cc:'var(--green)' },
+        ].map(s => (
+          <div key={s.label} className="stat-card">
+            <div className="stat-label">{s.label}</div>
+            <div className="stat-value">{s.value}</div>
+            <div className="stat-change" style={{ color:s.cc }}>{s.change}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="alert-warn">
+        <p>⚠️ <b>3 invited attendees haven't responded</b> — event starts in 5 days</p>
+        <button className="btn-primary btn-sm" style={{ background:'var(--warning-700)', whiteSpace:'nowrap' }} onClick={() => toast('Reminders sent to Marcus Webb, Emily Hart, and 1 other')}>Send Reminders</button>
+      </div>
+
+      <SecTitle action={<button className="btn-ghost btn-sm" onClick={() => nav('matches')}>View all 47 →</button>}>Top Matches</SecTitle>
+      <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+        {matches.slice(0,6).map(m => <MatchRow key={m.id} m={m} onInvite={onInvite}/>)}
+      </div>
+    </div>
+  );
+};
+
+// ─── VIEW: MATCHES ────────────────────────────────────────────────────────────
+
+const MatchesView = ({ toast }) => {
+  const [matches, setMatches] = useState(MATCHES);
+  const [tab, setTab] = useState('All');
+  const cats = ['All','Health Club Operator','Insurance & Health Plans','Corporate Wellness','Healthcare Clinic'];
+  const filtered = tab === 'All' ? matches : matches.filter(m => m.cat === tab);
+  const onInvite = m => {
+    setMatches(p => p.map(x => x.id === m.id ? { ...x, status:'invited' } : x));
+    toast(`Invite sent to ${m.name}`);
+  };
+  return (
+    <div>
+      <div className="card" style={{ marginBottom:24 }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16, flexWrap:'wrap', gap:10 }}>
+          <div>
+            <div style={{ fontWeight:700, color:'var(--text-primary)', fontSize:15 }}>ICP Configuration — Garmin Health</div>
+            <div style={{ color:'var(--text-muted)', fontSize:12, marginTop:2 }}>Last updated 3 days ago</div>
+          </div>
+          <button className="btn-primary" onClick={() => toast('ICP saved · Matching engine recalculating...')}>Save & Rerun ↻</button>
+        </div>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(175px, 1fr))', gap:16 }}>
+          {[
+            { label:'Target Job Titles',  items:['VP Digital Health','Chief Medical Officer','Head of Wellness','Director of Innovation'] },
+            { label:'Company Profile',    items:['50+ locations','1,000+ employees','Enterprise / Mid-market'] },
+            { label:'Buying Intent',      items:['Wearables integration','Outcomes & data','Member engagement'] },
+          ].map(g => (
+            <div key={g.label}>
+              <div style={{ color:'var(--text-muted)', fontSize:11, fontWeight:600, textTransform:'uppercase', letterSpacing:.7, marginBottom:8 }}>{g.label}</div>
+              <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
+                {g.items.map(it => (
+                  <div key={it} className="criteria-item">
+                    {it}
+                    <span style={{ color:'var(--text-muted)', cursor:'pointer', opacity:.6 }}>×</span>
+                  </div>
+                ))}
+                <button className="criteria-add">+ Add</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="tabs" style={{ overflowX:'auto', flexWrap:'nowrap', marginBottom:16 }}>
+        {cats.map(c => {
+          const n = c === 'All' ? MATCHES.length : MATCHES.filter(m => m.cat === c).length;
+          return (
+            <div key={c} className={`tab${tab === c ? ' active' : ''}`} onClick={() => setTab(c)}>
+              {c} ({n})
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+        {filtered.map(m => <MatchRow key={m.id} m={m} onInvite={onInvite}/>)}
+      </div>
+    </div>
+  );
+};
+
+// ─── VIEW: CALENDAR ───────────────────────────────────────────────────────────
+
+const CalendarView = ({ toast }) => {
+  const [sel, setSel]     = useState(null);
+  const [cal, setCal]     = useState(null);
+  const getMtg = (di, slot) => MEETINGS.find(m => m.day === di+1 && m.time === slot);
+
+  return (
+    <div>
+      {!cal ? (
+        <div className="cal-connect">
+          <div>
+            <div style={{ fontWeight:700, color:'var(--text-primary)', fontSize:14 }}>Connect your calendar</div>
+            <div style={{ color:'var(--text-secondary)', fontSize:12, marginTop:2 }}>Sync confirmed meetings with automatic reminders</div>
+          </div>
+          <div style={{ display:'flex', gap:8, flexShrink:0 }}>
+            <button className="btn-primary btn-sm" style={{ background:'#fff', color:'#1a1a1a', border:'1px solid #e0e0e0' }}
+              onClick={() => { setCal('google'); toast('Google Calendar connected · 8 meetings synced'); }}>🗓 Google</button>
+            <button className="btn-primary btn-sm" style={{ background:'#0078D4' }}
+              onClick={() => { setCal('outlook'); toast('Outlook connected · 8 meetings synced'); }}>📅 Outlook</button>
+          </div>
+        </div>
+      ) : (
+        <div className="cal-connected">
+          <span style={{ color:'var(--green)', fontWeight:700 }}>✓</span>
+          <span style={{ color:'var(--success-700)', fontSize:13, fontWeight:500 }}>
+            {cal === 'google' ? 'Google Calendar' : 'Outlook'} connected · 8 meetings synced · reminders active
+          </span>
+        </div>
+      )}
+
+      <div style={{ display:'flex', gap:16, marginBottom:14, flexWrap:'wrap' }}>
+        {[['var(--green)','Confirmed'],['var(--warning-500)','Pending'],['var(--red)','No Response']].map(([c,l]) => (
+          <div key={l} style={{ display:'flex', alignItems:'center', gap:6 }}>
+            <div style={{ width:8, height:8, borderRadius:'50%', background:c }}/>
+            <span style={{ color:'var(--text-muted)', fontSize:12 }}>{l}</span>
+          </div>
+        ))}
+        <span style={{ marginLeft:'auto', color:'var(--text-muted)', fontSize:12 }}>Feb 17–19, 2027 · Loews Hollywood</span>
+      </div>
+
+      <div style={{ overflowX:'auto' }}>
+        <div className="cal-grid" style={{ minWidth:420 }}>
+          <div className="cal-time">
+            <div className="cal-hdr"/>
+            {SLOTS.map(s => (
+              <div key={s} className="cal-slot" style={{ display:'flex', alignItems:'flex-start', justifyContent:'flex-end', padding:'6px 8px 0 0', fontSize:11, color:'var(--text-muted)' }}>{s}</div>
+            ))}
+          </div>
+          {DAYS.map((day, di) => (
+            <div key={day.l} className="cal-day">
+              <div className="cal-hdr">
+                <div style={{ fontWeight:800, fontSize:13, color:'var(--text-primary)' }}>{day.l}</div>
+                <div style={{ fontSize:10, color:'var(--text-muted)' }}>2027</div>
+              </div>
+              {SLOTS.map(slot => {
+                const mtg = getMtg(di, slot);
+                return (
+                  <div key={slot} className={`cal-slot${mtg ? ' has' : ''}`} onClick={() => mtg && setSel(mtg)}>
+                    {mtg && (
+                      <div className={`cal-ev ${mtg.status}`}>
+                        <div className="cal-ev-nm">{mtg.name}</div>
+                        <div className="cal-ev-co">{mtg.company} · {mtg.room}</div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {sel && (
+        <div className="detail-panel">
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
+            <span style={{ fontWeight:700, fontSize:16, color:'var(--text-primary)' }}>Meeting Details</span>
+            <button className="icon-btn" onClick={() => setSel(null)}>×</button>
+          </div>
+          <Av i={sel.i} c={sel.c} size={52}/>
+          <div style={{ marginTop:12, marginBottom:16 }}>
+            <div style={{ fontFamily:'Epilogue,sans-serif', fontWeight:800, fontSize:17, color:'var(--text-primary)' }}>{sel.name}</div>
+            <div style={{ color:'var(--text-secondary)', fontSize:13 }}>{sel.title} · {sel.company}</div>
+            <div style={{ marginTop:8 }}><StatusBadge s={sel.status}/></div>
+          </div>
+          {[['Date', DAYS[sel.day-1].f + ', 2027'], ['Time', sel.time + ' – ' + addMins(sel.time,30)], ['Room', sel.room], ['Category', sel.cat]].map(([l,v]) => (
+            <div key={l} className="detail-row">
+              <span style={{ color:'var(--text-muted)', fontSize:13 }}>{l}</span>
+              <span style={{ fontWeight:500, fontSize:13, color:'var(--text-primary)' }}>{v}</span>
+            </div>
+          ))}
+          <div className="detail-row" style={{ marginBottom:20 }}>
+            <span style={{ color:'var(--text-muted)', fontSize:13 }}>ICP Match</span>
+            <span style={{ color:'var(--green)', fontWeight:800, fontSize:15 }}>{sel.score}%</span>
+          </div>
+          <div style={{ display:'flex', flexDirection:'column', gap:8, marginTop:4 }}>
+            <button className="btn-primary" onClick={() => { toast(`Reminder sent to ${sel.name}`); setSel(null); }}>Send Reminder</button>
+            {sel.status !== 'confirmed' && (
+              <button className="btn-primary" style={{ background:'var(--warning-700)' }} onClick={() => { toast(`Nudge sent to ${sel.name}`); setSel(null); }}>Nudge Attendee ⚡</button>
+            )}
+            <button className="btn-ghost" onClick={() => setSel(null)}>Cancel Meeting</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── VIEW: JOURNEY ────────────────────────────────────────────────────────────
+
+const JourneyView = ({ toast }) => {
+  const [inv, setInv] = useState({});
+  const handle = (id, action) => {
+    setInv(p => ({ ...p, [id]: action }));
+    toast(action === 'accepted' ? 'Meeting accepted · Added to your calendar' : 'Meeting declined');
+  };
+  return (
+    <div>
+      <div className="card" style={{ marginBottom:24, display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:16 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:16 }}>
+          <Av i="SC" c="#4f80ff" size={52}/>
+          <div>
+            <div style={{ fontFamily:'Epilogue,sans-serif', fontWeight:800, fontSize:18, color:'var(--text-primary)' }}>Sarah Chen</div>
+            <div style={{ color:'var(--text-secondary)', fontSize:13 }}>VP Digital Health · Planet Fitness</div>
+            <div style={{ display:'flex', gap:6, marginTop:6, flexWrap:'wrap' }}>
+              <Tag>Health Club Operator</Tag>
+              <Tag color="#00c164">500+ Locations</Tag>
+            </div>
+          </div>
+        </div>
+        <div style={{ textAlign:'right' }}>
+          <div style={{ color:'var(--text-muted)', fontSize:12, marginBottom:4 }}>Profile completeness</div>
+          <div style={{ fontFamily:'Epilogue,sans-serif', fontSize:28, fontWeight:800, color:'var(--text-primary)', lineHeight:1, letterSpacing:-1 }}>78%</div>
+          <div style={{ width:110, height:5, background:'var(--border)', borderRadius:'var(--radius-full)', marginTop:6, overflow:'hidden', marginLeft:'auto' }}>
+            <div style={{ width:'78%', height:'100%', background:'var(--accent)', borderRadius:'var(--radius-full)' }}/>
+          </div>
+          <button className="btn-ghost btn-sm" style={{ marginTop:8 }}>Complete profile →</button>
+        </div>
+      </div>
+
+      <div className="journey-steps">
+        {[
+          { n:1, l:'Profile',         done:true  },
+          { n:2, l:'Review Sponsors', done:true  },
+          { n:3, l:'Accept Meetings', done:false, active:true },
+          { n:4, l:'Event Day',       done:false },
+          { n:5, l:'Rate & Follow Up',done:false },
+        ].map(s => (
+          <div key={s.n} className={`j-step${s.done?' done':s.active?' active':''}`}>
+            <div className="num">{s.done ? '✓' : s.n}</div>
+            <div className="lbl">{s.l}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="two-col" style={{ display:'grid', gridTemplateColumns:'1.3fr 1fr', gap:20 }}>
+        <div>
+          <SecTitle>
+            Meeting Requests
+            <span className="badge badge-warning" style={{ marginLeft:8 }}>
+              {INVITES.filter(i => (inv[i.id] || i.status) === 'pending').length} pending
+            </span>
+          </SecTitle>
+          {INVITES.map(invite => {
+            const state = inv[invite.id] || invite.status;
+            return (
+              <div key={invite.id} className="card invite-card" style={{ opacity: state === 'declined' ? .5 : 1 }}>
+                <div style={{ display:'flex', gap:14, alignItems:'flex-start' }}>
+                  <div className="invite-icon">{invite.icon}</div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:2, flexWrap:'wrap' }}>
+                      <span style={{ fontWeight:700, color:'var(--text-primary)', fontSize:14 }}>{invite.sponsor}</span>
+                      <span className="badge badge-open">↑ {invite.score}% match</span>
+                    </div>
+                    <div style={{ color:'var(--text-secondary)', fontSize:12 }}>{invite.contact} · {invite.role}</div>
+                    <div style={{ color:'var(--text-muted)', fontSize:11, marginTop:4 }}>📅 {invite.day} · {invite.time} &nbsp;📍 {invite.room}</div>
+                    <div style={{ display:'flex', gap:5, marginTop:6, flexWrap:'wrap' }}>
+                      {invite.tags.map(t => <Tag key={t}>{t}</Tag>)}
+                    </div>
+                  </div>
+                </div>
+                {state === 'pending' ? (
+                  <div className="invite-actions">
+                    <button className="btn-primary btn-sm btn-success" style={{ flex:1 }} onClick={() => handle(invite.id,'accepted')}>Accept</button>
+                    <button className="btn-ghost btn-sm" style={{ flex:1 }} onClick={() => handle(invite.id,'declined')}>Decline</button>
+                    <button className="btn-ghost btn-sm" onClick={() => toast('Reschedule — coming in v2')}>↺</button>
+                  </div>
+                ) : state === 'accepted' ? (
+                  <div style={{ marginTop:10, color:'var(--green)', fontSize:13, fontWeight:700 }}>✓ Accepted · Added to your calendar</div>
+                ) : (
+                  <div style={{ marginTop:10, color:'var(--text-muted)', fontSize:13 }}>Declined</div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <div>
+          <SecTitle>Sessions For You</SecTitle>
+          {SESSIONS.map(s => (
+            <div key={s.id} className="card" style={{ marginBottom:8 }}>
+              <div style={{ display:'flex', gap:8, marginBottom:4, alignItems:'flex-start' }}>
+                {s.hot && <span className="badge badge-closed" style={{ fontSize:10, flexShrink:0, marginTop:1 }}>HOT</span>}
+                <span style={{ fontWeight:600, color:'var(--text-primary)', fontSize:13, lineHeight:1.3 }}>{s.title}</span>
+              </div>
+              <div style={{ color:'var(--text-secondary)', fontSize:12 }}>{s.speaker}</div>
+              <div style={{ color:'var(--text-muted)', fontSize:11, marginTop:5 }}>🕒 {s.time}</div>
+              <div style={{ marginTop:7 }}><Tag>{s.track} Track</Tag></div>
+            </div>
+          ))}
+
+          <div style={{ marginTop:20 }}>
+            <SecTitle>Complete Your Profile</SecTitle>
+            {[
+              { t:'Add primary goals for the summit', done:true  },
+              { t:'Upload company overview',          done:true  },
+              { t:'Set availability windows',         done:true  },
+              { t:'Add decision-making timeline',     done:false },
+              { t:'List current tech stack',          done:false },
+            ].map((item, i) => (
+              <div key={i} className="check-item">
+                <div className={`check-dot ${item.done ? 'done' : 'todo'}`}>{item.done ? '✓' : ''}</div>
+                <span style={{ flex:1, color: item.done ? 'var(--text-muted)' : 'var(--text-secondary)', fontSize:13, textDecoration: item.done ? 'line-through' : 'none' }}>{item.t}</span>
+                {!item.done && <button className="btn-ghost btn-sm" onClick={() => toast('Opening...')}>Add →</button>}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── APP ──────────────────────────────────────────────────────────────────────
+
+const NAV = [
+  { id:'dashboard', label:'Dashboard',          icon:'⚡', role:'sponsor'  },
+  { id:'matches',   label:'Smart Matches',       icon:'🎯', role:'sponsor'  },
+  { id:'calendar',  label:'Calendar & Meetings', icon:'📅', role:'both'     },
+  { id:'journey',   label:'My Journey',          icon:'🗺', role:'attendee' },
+];
+
+const PAGE_SUBS = {
+  dashboard: 'Garmin Health · Connected: Health & Fitness Summit 2027',
+  matches:   'ICP-based recommendations · 47 matches found',
+  calendar:  'Feb 17–19, 2027 · 8 meetings scheduled · Loews Hollywood',
+  journey:   'Sarah Chen · Planet Fitness · Health Club Operator',
+};
+
+function App() {
+  const [view, setView]   = useState('dashboard');
+  const [role, setRole]   = useState('sponsor');
+  const [toast, setToast] = useState(null);
+  const [sideOpen, setSide] = useState(false);
+  const timerRef = useRef(null);
+
+  const showToast = msg => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setToast(msg);
+    timerRef.current = setTimeout(() => setToast(null), 3200);
+  };
+
+  const switchRole = r => {
+    setRole(r);
+    setView(r === 'sponsor' ? 'dashboard' : 'journey');
+    setSide(false);
+  };
+
+  const go = v => { setView(v); setSide(false); };
+
+  const visNav = NAV.filter(n => n.role === 'both' || n.role === role);
+  const cur    = NAV.find(n => n.id === view);
+
+  return (
+    <div className="app">
+      {/* ── SIDEBAR ── */}
+      <div className={`sidebar${sideOpen ? ' open' : ''}`}>
+        <div className="sidebar-logo">
+          <img
+            src="https://connectedhealthandfitness.com/sites/default/files/styles/panopoly_image_full/public/event_logos/6511_connected_health_fitness_logos_long_logo_blue_blend.png"
+            alt="Connected: Health & Fitness"
+            style={{ height:24, objectFit:'contain', filter:'brightness(0) invert(1)', opacity:.88 }}
+            onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='block'; }}
+          />
+          <span style={{ display:'none', color:'rgba(255,255,255,0.88)', fontFamily:'Epilogue,sans-serif', fontWeight:700, fontSize:13 }}>connected: <span style={{ color:'var(--accent)' }}>health</span></span>
+        </div>
+
+        <div className="sidebar-nav">
+          <div className="nav-section-label">Navigation</div>
+          {visNav.map(item => (
+            <div key={item.id} className={`nav-item${view === item.id ? ' active' : ''}`} onClick={() => go(item.id)}>
+              <span style={{ fontSize:15 }}>{item.icon}</span>
+              {item.label}
+            </div>
+          ))}
+
+          <div className="nav-section-label" style={{ marginTop:16 }}>View as</div>
+          {[{id:'sponsor',l:'🏢 Sponsor',s:'Garmin Health'},{id:'attendee',l:'🏋 Attendee',s:'Planet Fitness'}].map(r => (
+            <div key={r.id} className={`nav-item${role === r.id ? ' active' : ''}`} onClick={() => switchRole(r.id)}>
+              {r.l}
+              <span style={{ marginLeft:'auto', fontSize:11, opacity:.45 }}>{r.s}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="cdw">
+          <div className="cdw-lbl">Event Countdown</div>
+          <div className="cdw-val">5 <span className="cdw-unit">days</span></div>
+          <div className="cdw-sub">Feb 17–19, 2027 · Los Angeles</div>
+          <div className="cdw-bar"><div className="cdw-fill"/></div>
+        </div>
+      </div>
+
+      {/* Overlay (mobile) */}
+      <div className={`overlay${sideOpen ? '' : ' hidden'}`} onClick={() => setSide(false)}/>
+
+      {/* ── MAIN ── */}
+      <div className="main">
+        {/* Topbar */}
+        <div className="topbar">
+          <button className="ham-btn" onClick={() => setSide(!sideOpen)}>☰</button>
+          <div className="topbar-breadcrumb" style={{ color:'rgba(255,255,255,.9)' }}>
+            <span style={{ color:'rgba(255,255,255,.4)', fontSize:13 }}>Summit 2027</span>
+            <span style={{ color:'rgba(255,255,255,.25)', margin:'0 6px' }}>/</span>
+            <span style={{ color:'rgba(255,255,255,.9)', fontWeight:600, fontSize:13 }}>{cur?.label}</span>
+          </div>
+          <span style={{ color:'rgba(255,255,255,.4)', fontSize:12, marginRight:8 }}>
+            {role === 'sponsor' ? '🏢 Garmin Health' : '🏋 Planet Fitness'}
+          </span>
+          <div className="avatar" style={{ width:30, height:30, fontSize:11 }}>
+            {role === 'sponsor' ? 'GH' : 'SC'}
+          </div>
+        </div>
+
+        {/* Page header */}
+        <div style={{ padding:'20px 32px 14px', borderBottom:'1px solid var(--border)' }}>
+          <h2 style={{ fontFamily:'Epilogue,sans-serif', fontSize:20, fontWeight:800, color:'var(--text-primary)', margin:'0 0 3px', letterSpacing:-.5 }}>
+            {cur?.icon} {cur?.label}
+          </h2>
+          <p style={{ color:'var(--text-muted)', fontSize:13, margin:0 }}>{PAGE_SUBS[view]}</p>
+        </div>
+
+        <div className="content">
+          {view === 'dashboard' && <Dashboard nav={go} toast={showToast}/>}
+          {view === 'matches'   && <MatchesView toast={showToast}/>}
+          {view === 'calendar'  && <CalendarView toast={showToast}/>}
+          {view === 'journey'   && <JourneyView toast={showToast}/>}
+        </div>
+
+        {/* Amalgama credit */}
+        <div style={{ textAlign:'center', padding:'12px', borderTop:'1px solid var(--border)', color:'var(--text-muted)', fontSize:11 }}>
+          Prototype built by <a href="https://amalgama.co" style={{ color:'var(--accent)', textDecoration:'none', fontWeight:600 }}>Amalgama</a>
+        </div>
+      </div>
+
+      {/* Bottom nav (mobile) */}
+      <div className="bottom-nav">
+        <div className="bn-inner">
+          {visNav.map(item => (
+            <button key={item.id} className={`bn-item${view === item.id ? ' active' : ''}`} onClick={() => go(item.id)}>
+              <span className="bn-icon">{item.icon}</span>
+              <span>{item.label.split(' ')[0]}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {toast && <ToastComp msg={toast} onClose={() => setToast(null)}/>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
