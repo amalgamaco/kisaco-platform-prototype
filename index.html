@@ -896,10 +896,21 @@ function App() {
         </div>
 
         <div className="cdw">
-          <div className="cdw-lbl">Event Countdown</div>
-          <div className="cdw-val">5 <span className="cdw-unit">days</span></div>
-          <div className="cdw-sub">Feb 17–19, 2027 · Los Angeles</div>
-          <div className="cdw-bar"><div className="cdw-fill"/></div>
+          {isAtEvent ? (
+            <>
+              <div className="cdw-lbl">Event Day</div>
+              <div className="cdw-val">1 <span className="cdw-unit">of 3</span></div>
+              <div className="cdw-sub">Feb 17, 2027 · Los Angeles</div>
+              <div className="cdw-bar"><div className="cdw-fill" style={{ width:'33%' }}/></div>
+            </>
+          ) : (
+            <>
+              <div className="cdw-lbl">Event Countdown</div>
+              <div className="cdw-val">5 <span className="cdw-unit">days</span></div>
+              <div className="cdw-sub">Feb 17–19, 2027 · Los Angeles</div>
+              <div className="cdw-bar"><div className="cdw-fill"/></div>
+            </>
+          )}
         </div>
       </div>
 
